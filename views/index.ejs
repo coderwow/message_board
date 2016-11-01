@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>留言板</title>
+
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/my.css" rel="stylesheet">
+
+</head>
+<body>
+<div class="container" ng-app="app">
+    <div class="row" ng-controller="myCtrl">
+        <h1 style="margin:50px 0 50px 290px;">我的留言板</h1>
+        <form role="form" class="form-horizontal">
+            <div class="form-group">
+                <label for="user" class="control-label col-md-3">姓名</label>
+                <div class="col-md-4"><input type="text" class="form-control" id="user" placeholder="your username" name="username"></div>
+            </div>
+            <div class="form-group">
+                <label for="words" class="control-label col-md-3">留言</label>
+                <div class="col-md-4"><textarea class="form-control" cols="3" name="words" id="words" placeholder="your words"></textarea></div>
+            </div>
+            <div class="form-group">
+                <div class="col-md-offset-3 col-md-3">
+                    <button type="button" class="btn btn-primary" id="btn" ng-click="show()">发布</button>
+                </div>
+            </div>
+        </form>
+        <pre style="margin:40px 0 0 297px;width:375px;">
+        <h3>提示信息</h3>
+        <p id="info"></p>
+        </pre>
+        <nav style="margin:40px 0 0 297px;width:375px;">
+            <ul class="pagination">
+                <li><a href="#">&laquo;</a></li>
+                <li ng-repeat="page in pages"  ng-click="showActive($event)" ng-class="{'active':$index == currentPage}"><a href="javascript:void(0);" ng-bind="page" ></a></li>
+                <li><a href="#">&raquo;</a></li>
+            </ul>
+        </nav>
+        <div class="row">
+           <div class="col-md-5" style="margin-top:40px;margin-left:295px;">
+               <div class="panel panel-success" >
+                   <!-- Default panel contents -->
+                   <div class="panel-heading">发布信息</div>
+
+                   <!-- List group -->
+                   <ul class="list-group" id="box">
+                       <li class="list-group-item list" ng-repeat="item in items" >
+                           <h4 ng-bind="item.username"></h4>
+                           <p ng-bind="item.words"></p>
+                           <em ng-bind="item.time |date:'yyyy年MM月dd日HH时mm分ss秒'"></em>
+                           <a href="javascript:void(0);" class="btn btn-warning btnDel" ng-click="drop()">删除</a>
+                       </li>
+                   </ul>
+               </div>
+           </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/jquery-3.1.0.min.js"></script>
+<script src="/js/bootstrap.min.js"></script>
+<script src="/js/angular.js"></script>
+<script>
+    $(function(){
+        $('#btn').click(function(){
+            $.post('/send',
+                    {'username':$('#user').val(),'words':$('#words').val()},
+                    function(result){
+                        if(result.result==-1){
+                            $('#info').html('发布失败！')
+                        }else if(result.result==1){
+                            $('#info').html('发布成功！')
+                        }
+                    }
+            )
+        })
+    })
+</script>
+<script>
+   angular.module('app',[])
+           .controller('myCtrl',function($scope,$http){
+               $scope.currentPage=0;
+               //默认请求第一页数据
+               getData(1);
+               getPages();
+               //Ajax请求数据
+               function getData(page) {
+                   //真实page是从0开始算的
+                   $http.get("/read?page=" + (page - 1)).success(function(result){
+                       //这里接收是result，但是这个json里面有一个key叫做result
+                       $scope.items=result.result;
+                   });
+               }
+               function getPages(){
+                   $http.get('/pages').success(function(result){
+                       var allPages=[];
+                       for(var i=0;i<parseInt(result.pageamount);i++){
+                           allPages.push(i+1);
+                       }
+                       $scope.pages=allPages;
+                   });
+               }
+               $scope.show=function(){
+                   getData(1);
+                   getPages();
+               }
+               $scope.drop=function(){
+                   console.log(this)
+                   var con=confirm('你真的想好了吗？');
+                   if(con){
+                       $http.get('/drop?id='+$scope.items[this.$index]._id).success(function(result){
+                           if(result.result===-1){
+                               getData($scope.currentPage+1);
+                           }
+                       });
+                   };
+               };
+               $scope.showActive=function(e){
+                   //更改当前页码
+                   $scope.currentPage=this.$index
+                   getData(this.page);
+               }
+           })
+</script>
+</body>
+</html>

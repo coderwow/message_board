@@ -1,0 +1,8 @@
+.list{
+    position:relative;
+}
+.btnDel{
+    position:absolute;
+    right:7%;
+    top:15%;
+}
